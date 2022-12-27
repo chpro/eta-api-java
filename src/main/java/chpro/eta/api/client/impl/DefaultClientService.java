@@ -1,8 +1,14 @@
 
 package chpro.eta.api.client.impl;
 
+import java.io.IOException;
 import java.net.InetAddress;
 
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.message.StatusLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,29 +19,30 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import chpro.eta.api.client.ClientService;
 import chpro.eta.api.client.data.Eta;
-import io.micronaut.http.HttpRequest;
-import io.micronaut.http.client.HttpClient;
-import io.micronaut.http.client.HttpClientRegistry;
-import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
+@Singleton
 public class DefaultClientService implements ClientService {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultClientService.class);
 
-    @Inject
-    protected HttpClientRegistry<HttpClient> registry;
-
-
     public String getData(InetAddress address, String path) {
-        HttpClient client = registry.getDefaultClient();
         String uri = String.format("http://%s:%s%s", address.getHostAddress(), "8080", path);
         LOG.info("Getting data from endpoint {}", uri);
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            final HttpGet httpget = new HttpGet(uri);
 
-        String data = client.toBlocking().retrieve(
-                HttpRequest.GET(uri)
-        );
-        LOG.trace("Got response data from endpoint {}: {}", uri, data);
-        return data;
+            final String result = client.execute(httpget, response -> {
+                LOG.trace("Got response for {} status {}", httpget,new StatusLine(response));
+                // Process response message and convert it into a value object
+                return EntityUtils.toString(response.getEntity());
+            });
+            LOG.trace("Response for endpoint {} was: {}", uri, result);
+            return result;
+        } catch (IOException e) {
+            LOG.error("Was not able to get response for " + uri, e);
+        }
+        return null;
     }
 
     public Eta getUserMenu(InetAddress address) {
