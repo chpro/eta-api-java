@@ -16,7 +16,7 @@ To get all available options use
 To print the resource /user/menu use
 `gradle run --args="-m -h example.com"`
 
-This menu is also the starting point for printing all vars and there info
+This menu is also the starting point for printing all vars and their info
 
 `gradle run --args="-mvi -h example.com"` will print the menu and all variables and their related info.
 This comes in handy when you need to find the URI for a certain variable.
